@@ -102,3 +102,79 @@ chrome --headless --disable-gpu --print-to-pdf=/root/aa.pdf  https://www.baidu.c
   "extData": {}
 }
 ```
+
+## 5.容器化实践（CentOS）
+
+1.增加google-chrome-repo
+
+```bash
+tee /root/buildimages/google-chrome.repo <<-'EOF'
+[google-chrome]
+name=google-chrome
+baseurl=http://dl.google.com/linux/chrome/rpm/stable/$basearch
+enabled=1
+gpgcheck=1
+gpgkey=https://dl-ssl.google.com/linux/linux_signing_key.pub
+EOF
+```
+
+2.拷贝windows字体
+> 1.在/root/buildimages中建立文件夹 /root/buildimages/winfonts
+> 2.在windows上c:\windows\fonts中的所有文件到 /root/buildimages/winfonts
+
+3.拷贝引用程序
+> 拷贝pdf2html到 /root/buildimages/pdf2html
+> 修改app_conf.yaml文件中的 chromeConf.execPath 为: /usr/bin/google-chrome
+> 拷贝app_conf.yaml到 /root/buildimages/app_conf.yaml
+
+4.编写DockerFile
+
+```bash
+#编写DockerFile 
+tee /root/buildimages/Dockerfile <<-'EOF'
+FROM centos:7.9.2009
+
+RUN curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+RUN yum clean all;yum makecache
+RUN yum install -y vim wget curl unzip openssh openssh-clients net-tools kde-l10n-Chinese glibc-common fontconfig
+RUN echo Asia/Shanghai > /etc/timezone && localedef -c -f UTF-8 -i zh_CN zh_CN.utf8
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime 
+
+COPY google-chrome.repo  /etc/yum.repos.d/google-chrome.repo
+WORKDIR /root
+RUN yum install -y google-chrome-stable --nogpgcheck
+#字体相关
+RUN mkdir -p /usr/share/fonts/winfonts
+COPY winfonts  /usr/share/fonts/winfonts
+RUN chmod -R 755 /usr/share/fonts/winfonts
+#安装 ttmkfdir 来搜索目录中的字体信息
+RUN yum -y install ttmkfdir
+RUN ttmkfdir -e /usr/share/X11/fonts/encodings/encodings.dir
+RUN sed -i 's#<dir>/usr/share/fonts</dir>#<dir>/usr/share/fonts</dir>\n\t<dir>/usr/share/fonts/winfonts</dir>#g' /etc/fonts/fonts.conf
+RUN fc-cache
+
+#应用程序
+COPY html2pdf  /root/
+COPY app_conf.yaml  /root/app_conf.yaml
+RUN chmod -R 777 /root/html2pdf
+
+WORKDIR /root
+CMD ["/root/html2pdf"]
+
+EOF
+```
+
+5.构建|测试|运行
+
+```bash
+#构建
+cd /root/buildimages
+docker build -t local/html2pdf:v1 .
+
+#测试 
+docker run -it --rm --name test  local/html2pdf:v1 /bin/bash 
+
+#正式运行
+docker run -d --restart=always --name html2pdf -p 19444:19444 local/html2pdf:v1
+```
