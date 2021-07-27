@@ -33,7 +33,7 @@ chrome --headless --disable-gpu --print-to-pdf=/root/aa.pdf  https://www.baidu.c
 
 3. 转换效果
 
-   ![image-20210727162820742](C:\Users\niexq\Desktop\img.png)
+   ![效果图](./imgs/baidu.png)
 
 4. 包含两个http接口，都为POST请求
 
