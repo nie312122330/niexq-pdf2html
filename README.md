@@ -37,7 +37,7 @@ chrome --headless --disable-gpu --print-to-pdf=/root/aa.pdf  https://www.baidu.c
 
 4. 包含两个http接口，都为POST请求
 
-   1. URL直接转换为PDF文件  <http://127.0.0.1:19444/niexq-html2pdf/pub/url2Pdf.do>
+1. URL直接转换为PDF文件  <http://127.0.0.1:19444/niexq-html2pdf/pub/url2Pdf.do>
 
 > 请求参数为:
 
