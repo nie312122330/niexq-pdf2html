@@ -1,0 +1,15 @@
+# 服务器配置
+server:
+  # 服务名称(ContextPath)
+  appName: niexq-html2pdf
+  # 服务器端口号
+  serverPort: 19444
+  # 是否开启GIN生产模式
+  ginReleaseMode: true
+ 
+# 数据库服务器列表
+chromeConf:
+  #Chrome主程序的位置，如果chrome采用的安装形式，可不配置
+  execPath:
+  #pdf结果目录
+  pdfdir: pdfdir
