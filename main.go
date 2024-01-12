@@ -53,7 +53,7 @@ func main() {
 	ginEngine.Run(fmt.Sprintf(":%d", config.AppConf.Server.ServerPort))
 }
 
-//当前的内存状态
+// 当前的内存状态
 func curMemStats() string {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)

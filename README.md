@@ -170,6 +170,33 @@ WORKDIR /root
 CMD ["/root/html2pdf"]
 
 EOF
+
+#升级
+tee /root/build-chromdp/Dockerfile <<-'EOF'
+FROM registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v5
+COPY html2pdf  /root/
+COPY app_conf.yaml  /root/app_conf.yaml
+RUN chmod -R 777 /root/html2pdf
+WORKDIR /root
+CMD ["/root/html2pdf"]
+EOF
+
+docker build -t registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v8 .
+docker push  registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v8
+
+docker stop html2pdf;docker rm html2pdf
+docker run -d --restart=always --name html2pdf \
+ -p 19444:19444 -m 1G  \
+ -v /root/html2pdf/:/root/pdfdir \
+registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v8
+
+
+
+#统计总进程数
+pstree -p |wc -l
+
+
+
 ```
 
 5. 构建|测试|运行
@@ -182,6 +209,20 @@ docker build -t local/html2pdf:v1 .
 #测试 
 docker run -it --rm --name test  local/html2pdf:v1 /bin/bash 
 
+
 #正式运行
 docker run -d --restart=always --name html2pdf -p 19444:19444 local/html2pdf:v1
+
+
+#调用
+curl -X POST  -H "Content-Type: application/json;charset=\'UTF-8\'" -d '{"httpUrl":"https://www.baidu.com","landscape":false,"displayHeaderFooter":false,"printBackground":true,"paperWidth":8.5,"paperHeight":11,"marginTop":0,"marginBottom":0,"marginLeft":0.4,"marginRight":0.4,"pageRanges":""}' http://192.168.0.251:19444/niexq-html2pdf/pub/url2Pdf.do
+
+#循环调用
+for i in {1..5000}
+ do
+ curl -X POST  -H "Content-Type: application/json;charset=\'UTF-8\'" -d '{"httpUrl":"https://www.baidu.com","landscape":false,"displayHeaderFooter":false,"printBackground":true,"paperWidth":8.5,"paperHeight":11,"marginTop":0,"marginBottom":0,"marginLeft":0.4,"marginRight":0.4,"pageRanges":""}' http://192.168.0.253:19444/niexq-html2pdf/pub/url2Pdf.do
+ done
+
+
+ 
 ```
