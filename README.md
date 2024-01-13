@@ -171,31 +171,44 @@ CMD ["/root/html2pdf"]
 
 EOF
 
-#升级
+#僵尸进程问题处理  【https://github.com/krallin/tini】
 tee /root/build-chromdp/Dockerfile <<-'EOF'
-FROM registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v8
-RUN yum install -y psmisc bind-utils
-COPY html2pdf  /root/
-COPY app_conf.yaml  /root/app_conf.yaml
+FROM registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v9
+RUN yum install -y psmisc bind-utils curl
+
+RUN curl -o /bin/tini https://sanzi-oss.widthsoft.com/fixdir/build-docker-img/tini-v0.19.0
+RUN chmod +x /bin/tini
+ENTRYPOINT ["/bin/tini","--"]
+
+COPY html2pdf  /root/
+COPY app_conf.yaml  /root/app_conf.yaml
 RUN chmod -R 777 /root/html2pdf
 WORKDIR /root
 CMD ["/root/html2pdf"]
 EOF
 
-docker build -t registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v9 .
-docker push  registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v9
 
+docker build -t registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v10 .
+docker push  registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v10
+
+
+#运行
+docker pull registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v10
 docker stop html2pdf;docker rm html2pdf
-docker run -d --restart=always --name html2pdf \
+docker run -d --restart=always --name html2pdf  -u root --privileged --cgroupns host \
  -p 19444:19444 -m 1G  \
  -v /root/html2pdf/:/root/pdfdir \
-registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v9
+registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v10
 
 
 #统计总进程数
 pstree -p |wc -l
 
 docker exec html2pdf pstree -p |wc -l
+
+#杀进程
+if (($(docker exec html2pdf pstree -p |wc -l)>4000));then docker restart html2pdf; fi
+
 ```
 
 5. 构建|测试|运行
@@ -224,4 +237,33 @@ for i in {1..5000}
 
 
 
+
+
+
 ```
+
+6.非容器安装（CentOS）
+
+````bash
+#增加 google-chrome-repo
+tee /etc/yum.repos.d/google-chrome.repo <<-'EOF'
+[google-chrome]
+name=google-chrome
+baseurl=http://dl.google.com/linux/chrome/rpm/stable/$basearch
+enabled=1
+gpgcheck=1
+gpgkey=https://dl-ssl.google.com/linux/linux_signing_key.pub
+EOF
+
+#安装google-chrome
+yum install -y google-chrome-stable --nogpgcheck 
+
+#制作service
+
+
+
+
+
+
+````
+

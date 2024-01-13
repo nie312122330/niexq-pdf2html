@@ -87,6 +87,7 @@ func Html2Pdf(gCtx *gin.Context) {
 }
 
 func printUrl2Pdf(urlstr string, pdfReq *reqvos.BasePdfReq) (*string, error) {
+	logger.Info(fmt.Sprintf("开始转换：%s", urlstr))
 	ctx, cancel := chromedp.NewContext(chromeCtx)
 	defer cancel()
 	// 捕获PDF

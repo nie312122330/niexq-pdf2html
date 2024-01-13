@@ -8,7 +8,6 @@ import (
 	"runtime"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nie312122330/niexq-gotools/dateext"
 	"github.com/nie312122330/niexq-gotools/logext"
 	"github.com/nie312122330/niexq-gowebapi/ginext"
 	"github.com/robfig/cron/v3"
@@ -32,12 +31,12 @@ func main() {
 	defer crontab.Stop()
 
 	// 每秒钟显示当前时间
-	crontab.AddFunc("*/1 * * * * ?", func() {
-		dateStr, _ := dateext.Now().Format("yyyy-MM-dd HH:mm:ss", true)
-		fmt.Printf("%s 程序当前使用内存量:%s\n", dateStr, curMemStats())
-	})
-	// 启动定时器
-	crontab.Start()
+	// crontab.AddFunc("*/1 * * * * ?", func() {
+	// 	dateStr, _ := dateext.Now().Format("yyyy-MM-dd HH:mm:ss", true)
+	// 	fmt.Printf("%s 程序当前使用内存量:%s\n", dateStr, curMemStats())
+	// })
+	// // 启动定时器
+	// crontab.Start()
 
 	ginEngine := gin.New()
 	//PDF结果目录
