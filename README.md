@@ -256,3 +256,72 @@ yum install -y google-chrome-stable --nogpgcheck
 
 ````
 
+7、使用openanolis作为基础镜像
+
+```bash
+
+
+tee /root/build-chromdp/Dockerfile <<-'EOF'
+FROM registry.cn-chengdu.aliyuncs.com/width-public/openanolis:23-20230704
+
+RUN yum clean all;yum makecache
+RUN yum install -y vim wget unzip openssh openssh-clients net-tools glibc-common fontconfig psmisc bind-utils curl
+RUN echo Asia/Shanghai > /etc/timezone 
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
+
+#安装chrome依赖
+RUN mkdir -p /root/lib-fonts
+WORKDIR /root/lib-fonts
+# https://rpmfind.net/linux/rpm2html/search.php?query=liberation-fonts-common&submit=Search+...&system=&arch=
+RUN wget https://rpmfind.net/linux/centos-stream/10-stream/AppStream/x86_64/os/Packages/liberation-narrow-fonts-1.07.6-15.el10.noarch.rpm
+RUN wget https://rpmfind.net/linux/centos-stream/10-stream/AppStream/x86_64/os/Packages/liberation-fonts-2.1.5-10.el10.noarch.rpm
+RUN wget https://rpmfind.net/linux/centos-stream/10-stream/AppStream/x86_64/os/Packages/liberation-mono-fonts-2.1.5-10.el10.noarch.rpm
+RUN wget https://rpmfind.net/linux/centos-stream/10-stream/AppStream/x86_64/os/Packages/liberation-sans-fonts-2.1.5-10.el10.noarch.rpm
+RUN wget https://rpmfind.net/linux/centos-stream/10-stream/AppStream/x86_64/os/Packages/liberation-serif-fonts-2.1.5-10.el10.noarch.rpm
+RUN wget https://rpmfind.net/linux/centos-stream/10-stream/AppStream/x86_64/os/Packages/liberation-fonts-common-2.1.5-10.el10.noarch.rpm
+RUN yum localinstall -y *.rpm --disablerepo=*
+
+#下载windows字体
+RUN wget https://sanzi-oss.widthsoft.com/fixdir/anolisos/winfonts.tar
+RUN tar -xvf winfonts.tar && mv winfonts /usr/share/fonts/winfonts && chmod -R 755 /usr/share/fonts/winfonts
+
+#安装 ttmkfdir 来搜索目录中的字体信息
+WORKDIR /root
+RUN yum -y install ttmkfdir
+RUN ttmkfdir -e /usr/share/X11/fonts/encodings/encodings.dir
+RUN sed -i 's#<dir>/usr/share/fonts</dir>#<dir>/usr/share/fonts</dir>\n\t<dir>/usr/share/fonts/winfonts</dir>#g' /etc/fonts/fonts.conf
+RUN fc-cache
+
+#安装chrome
+WORKDIR /root
+RUN curl -o /etc/yum.repos.d/google-chrome.repo https://sanzi-oss.widthsoft.com/fixdir/build-docker-img/anolisos/google-chrome.repo
+RUN yum install -y google-chrome-stable --nogpgcheck
+
+#僵尸进程问题处理  【https://github.com/krallin/tini】
+WORKDIR /root
+RUN curl -o /bin/tini https://sanzi-oss.widthsoft.com/fixdir/build-docker-img/tini-v0.19.0
+RUN chmod +x /bin/tini
+ENTRYPOINT ["/bin/tini","--"]
+
+WORKDIR /root
+RUN rm -rf /root/*
+RUN wget https://sanzi-oss.widthsoft.com/fixdir/anolisos/html2pdf/app_conf.yaml
+RUN wget https://sanzi-oss.widthsoft.com/fixdir/anolisos/html2pdf/html2pdf
+RUN chmod +x *
+CMD ["/root/html2pdf"]
+
+EOF
+docker build -t registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v2.0.0 .
+docker run -it --rm registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v2.0.0
+
+docker stop html2pdf;docker rm html2pdf
+docker run -d --restart=always --name html2pdf  -u root --privileged --cgroupns host \
+ -p 19444:19444 -m 1G  \
+ -v /root/html2pdf/:/root/pdfdir \
+registry.cn-chengdu.aliyuncs.com/width-public/html2pdf:v2.0.0
+
+```
+
+
+
